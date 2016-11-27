@@ -77,94 +77,97 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+try {
+    Intent intent = getIntent();
 
-        Intent intent=getIntent();
-
-        types=intent.getStringExtra("type");
-        radius=Double.valueOf(intent.getStringExtra("radius"));
+    types = intent.getStringExtra("type");
+    radius = Double.valueOf(intent.getStringExtra("radius"));
 
 
-        networkStatus = new NetworkStatus(getApplicationContext());
+    networkStatus = new NetworkStatus(getApplicationContext());
 
-        // Check if Internet present
-        isInternetPresent = networkStatus.isConnectingToInternet();
-        if (!isInternetPresent) {
-            // Internet Connection is not present
-            alert.showAlertDialog(MainActivity.this, "Internet Connection Error",
-                    "Please connect to working Internet connection", false);
-            // stop executing code by return
-            return;
+    // Check if Internet present
+    isInternetPresent = networkStatus.isConnectingToInternet();
+    if (!isInternetPresent) {
+        // Internet Connection is not present
+        alert.showAlertDialog(MainActivity.this, "Internet Connection Error",
+                "Please connect to working Internet connection", false);
+        // stop executing code by return
+        return;
+    }
+
+    // creating GPS Class object
+    myGPSTracker = new MyGPSTracker(this);
+
+    // check if GPS location can get
+    if (myGPSTracker.canGetLocation()) {
+        Log.d("Your Location", "latitude:" + myGPSTracker.getLatitude() + ", longitude: " + myGPSTracker.getLongitude());
+    } else {
+        // Can't get user's current location
+        alert.showAlertDialog(MainActivity.this, "GPS Status",
+                "Couldn't get location information. Please enable GPS",
+                false);
+        // stop executing code by return
+        return;
+    }
+
+
+    // Getting listview
+    lv = (ListView) findViewById(R.id.list);
+
+    // button show on map
+    btnShowOnMap = (Button) findViewById(R.id.btn_show_map);
+
+    // calling background Async task to load Google Places
+    // After getting places from Google all the data is shown in listview
+    new LoadPlaces().execute();
+
+    /** Button click event for shown on map */
+    btnShowOnMap.setOnClickListener(new View.OnClickListener() {
+
+        @Override
+        public void onClick(View arg0) {
+
+            //   Intent i = new Intent(getApplicationContext(),MapActivity.class);
+            Intent i = new Intent(getApplicationContext(), MapActivity.class);
+            // Sending user current geo location
+            i.putExtra("user_latitude", Double.toString(myGPSTracker.getLatitude()));
+            i.putExtra("user_longitude", Double.toString(myGPSTracker.getLongitude()));
+
+            // passing near places to map activity
+            i.putExtra("near_places", nearPlaces);
+            // staring activity
+            startActivity(i);
         }
+    });
 
-        // creating GPS Class object
-        myGPSTracker = new MyGPSTracker(this);
 
-        // check if GPS location can get
-        if (myGPSTracker.canGetLocation()) {
-            Log.d("Your Location", "latitude:" + myGPSTracker.getLatitude() + ", longitude: " + myGPSTracker.getLongitude());
-        } else {
-            // Can't get user's current location
-            alert.showAlertDialog(MainActivity.this, "GPS Status",
-                    "Couldn't get location information. Please enable GPS",
-                    false);
-            // stop executing code by return
-            return;
+    /**
+     * ListItem click event
+     * On selecting a listitem SinglePlaceActivity is launched
+     * */
+    lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view,
+                                int position, long id) {
+            // getting values from selected ListItem
+            String reference = ((TextView) view.findViewById(R.id.reference)).getText().toString();
+
+            // Starting new intent
+            Intent in = new Intent(getApplicationContext(), PlaceActivity.class);
+
+            // Sending place refrence id to single place activity
+            // place refrence id used to get "Place full details"
+            in.putExtra(KEY_REFERENCE, reference);
+            startActivity(in);
         }
+    });
 
 
-        // Getting listview
-        lv = (ListView) findViewById(R.id.list);
-
-        // button show on map
-        btnShowOnMap = (Button) findViewById(R.id.btn_show_map);
-
-        // calling background Async task to load Google Places
-        // After getting places from Google all the data is shown in listview
-        new LoadPlaces().execute();
-
-        /** Button click event for shown on map */
-        btnShowOnMap.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View arg0) {
-
-              //   Intent i = new Intent(getApplicationContext(),MapActivity.class);
-                Intent i = new Intent(getApplicationContext(),MapActivity.class);
-                // Sending user current geo location
-                i.putExtra("user_latitude", Double.toString(myGPSTracker.getLatitude()));
-                i.putExtra("user_longitude", Double.toString(myGPSTracker.getLongitude()));
-
-                // passing near places to map activity
-                i.putExtra("near_places", nearPlaces);
-                // staring activity
-                startActivity(i);
-            }
-        });
-
-
-        /**
-         * ListItem click event
-         * On selecting a listitem SinglePlaceActivity is launched
-         * */
-        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view,
-                                    int position, long id) {
-                // getting values from selected ListItem
-                String reference = ((TextView) view.findViewById(R.id.reference)).getText().toString();
-
-                // Starting new intent
-               Intent in = new Intent(getApplicationContext(),PlaceActivity.class);
-
-                // Sending place refrence id to single place activity
-                // place refrence id used to get "Place full details"
-                in.putExtra(KEY_REFERENCE, reference);
-                startActivity(in);
-            }
-        });
-
-
+       } catch (Exception e){
+                new MyAlertDialog().showAlertDialog(MainActivity.this,"Error","Connection Error",false);
+           }
     }
 
 
